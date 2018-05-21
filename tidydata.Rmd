@@ -96,3 +96,27 @@ catch_df %>%
   arrange(desc(mean_catch))
 ```
 
+# Joins
+
+Left-join: same number of rows, at least one additional column 
+If there isn't a match, will fill in 'NA'
+
+Inner join: Only returns rows with values that match 
+
+```{r}
+region_defs <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.303.1", method = "libcurl"),
+                        stringsAsFactors = FALSE)
+```
+
+```{r}
+region_defs <- region_defs %>% 
+  select(code, mgmtArea)
+```
+Don't overwrite in joins, makes it hard to diagnose issues.
+If you decided to instead rename the columns so that they match with rename(Region = code, Region_Name = mgmtArea) and removing the "by = " definitions in the join code 
+```{r}
+catch_joined <- left_join(catch_df, region_defs, by = c("Region" = "code"))
+
+head(catch_joined)
+```
+
