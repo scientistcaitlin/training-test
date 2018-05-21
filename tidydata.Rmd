@@ -14,20 +14,85 @@ library(dplyr)
 library(tidyr)
 ```
 
+Read in data from the [KNB]https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1
 ```{r}
 catch_df <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1", method = "libcurl"),
                     stringsAsFactors = FALSE)
-head(catch_df)
 ```
 Get fid of summary column and notes column 
 Select only keeps the variables you mention
 Can also negatively select and say "everything but this"
+
+Consolidating entire pipe 
 ```{r}
 unique(catch_df$notesRegCode)
 catch_df <- catch_df %>%  
-  select(Region, Year, Chinook, Sockeye, Coho, Pink, Chum)
+  select(Region, Year, Chinook, Sockeye, Coho, Pink, Chum) %>% 
+  gather(key = Species, value = Catch, -Region, -Year)
+  rename(catch_thousands = Catch)
+
 #catch_df <- catch_df %>%  
 #  select(-All, -notesRegCode)
+```
+
+Gather and Spread
+spread is the opposite of gather and moves your data back to wide format
+```{r}
+catch_df <- catch_df %>% 
+  gather(key = Species, value = Catch, -Region, -Year)
+
 head(catch_df)
+
+# We don't actually want data in wide format
+#catch_df %>% 
+#  spread(key = Species, value = Catch)
+```
+
+Rename columns
+new name equals old name 
+```{r}
+catch_df <- catch_df %>% 
+  rename(catch_thousands = Catch)
+
+head(catch_df)
+```
+
+Mutate function
+new thing equals old thing
+
+diagnosing non-integer values 
+
+Found a typo in original data, corrected it, converted `catch_thousands` column to thousands of fish 
+```{r}
+test <- as.integer(catch_df$catch_thousands)
+which(is.na(test == TRUE))
+catch_df[401,]
+
+catch_df <- catch_df %>% 
+  mutate(catch_thousands = ifelse(catch_thousands == "I", 1, catch_thousands)) %>% 
+  mutate(catch_thousands = as.integer(catch_thousands)) %>% 
+  mutate(catch = catch_thousands * 1000)
+
+head(catch_df)
+```
+
+# Analysis 
+
+Group_by almost always used with summarize or mutate
+Can pass multiple variables to group by 
+n() counts number of observations within a group
+```{r}
+catch_df %>% 
+  group_by(Species, Year) %>% 
+  summarize(mean_catch = mean(catch), num_obs = n())
+```
+
+Filter  
+```{r}
+catch_df %>% 
+  filter(Species == "Chinook") %>% 
+  group_by(Region) %>% 
+  summarise(mean_catch = mean(catch)) %>% 
+  arrange(desc(mean_catch))
 ```
 
